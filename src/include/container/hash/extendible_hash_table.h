@@ -17,6 +17,7 @@
 
 #pragma once
 
+#include <cstddef>
 #include <list>
 #include <memory>
 #include <mutex>  // NOLINT
@@ -63,6 +64,9 @@ class ExtendibleHashTable : public HashTable<K, V> {
    */
   auto GetNumBuckets() const -> int;
 
+  auto GetBucketSize() const -> int;
+
+  auto GetTwinPos(size_t pos) const -> size_t;
   /**
    *
    * TODO(P1): Add implementation
