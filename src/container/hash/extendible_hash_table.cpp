@@ -17,6 +17,7 @@
 #include <iostream>
 #include <list>
 #include <memory>
+#include <mutex>
 #include <shared_mutex>
 #include <tuple>
 #include <utility>
@@ -47,7 +48,7 @@ auto ExtendibleHashTable<K, V>::GetBucketSize() const -> int {
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::GetGlobalDepth() const -> int {
-  std::scoped_lock<std::mutex> lock(latch_);
+  std::scoped_lock<std::recursive_mutex> lock(latch_);
   return GetGlobalDepthInternal();
 }
 
@@ -58,7 +59,7 @@ auto ExtendibleHashTable<K, V>::GetGlobalDepthInternal() const -> int {
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::GetLocalDepth(int dir_index) const -> int {
-  std::scoped_lock<std::mutex> lock(latch_);
+  std::scoped_lock<std::recursive_mutex> lock(latch_);
   return GetLocalDepthInternal(dir_index);
 }
 
@@ -69,7 +70,7 @@ auto ExtendibleHashTable<K, V>::GetLocalDepthInternal(int dir_index) const -> in
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::GetNumBuckets() const -> int {
-  std::scoped_lock<std::mutex> lock(latch_);
+  std::scoped_lock<std::recursive_mutex> lock(latch_);
   return GetNumBucketsInternal();
 }
 
@@ -80,6 +81,7 @@ auto ExtendibleHashTable<K, V>::GetNumBucketsInternal() const -> int {
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Find(const K &key, V &value) -> bool {
+  std::scoped_lock<std::recursive_mutex> lock(latch_);
   auto pos = IndexOf(key);
   std::shared_ptr<Bucket> bucket = dir_[pos];
   return bucket->Find(key, value);
@@ -87,6 +89,7 @@ auto ExtendibleHashTable<K, V>::Find(const K &key, V &value) -> bool {
 
 template <typename K, typename V>
 auto ExtendibleHashTable<K, V>::Remove(const K &key) -> bool {
+  std::scoped_lock<std::recursive_mutex> lock(latch_);
   auto pos = IndexOf(key);
   std::shared_ptr<Bucket> bucket = dir_[pos];
   return bucket->Remove(key);
@@ -94,6 +97,8 @@ auto ExtendibleHashTable<K, V>::Remove(const K &key) -> bool {
 
 template <typename K, typename V>
 void ExtendibleHashTable<K, V>::Insert(const K &key, const V &value) {
+  // todo! use more efficient concurrent method
+  std::scoped_lock<std::recursive_mutex> lock(latch_);
   auto pos = IndexOf(key);
   std::shared_ptr<Bucket> bucket = dir_[pos];
   LOG_INFO("insert with globalDepth: %d", GetGlobalDepth());
